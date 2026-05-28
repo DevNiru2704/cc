@@ -1,2 +1,3 @@
 /.venv
-/prompt.txt
+prompt.txt
+/__pycache__
