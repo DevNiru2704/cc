@@ -1,17 +1,42 @@
-**Concept**: Compute FIRST sets for a sample grammar
+**Concept**: Compute FIRST and FOLLOW sets for a grammar
 **Logic**:
-- Iteratively compute FIRST until stable
-- Handle epsilon and terminals
+- Store the grammar inside the program
+- Compute FIRST sets until they stop changing
+- Compute FOLLOW sets using FIRST information and the start symbol
 **Sample Input**:
-Grammar with E, E', T, T', F
+Grammar used in the program:
+```text
+E -> T E'
+E' -> + T E' | epsilon
+T -> F T'
+T' -> * F T' | epsilon
+F -> ( E ) | id
+```
 **Sample Output**:
 ```
-FIRST sets:
-E []
-T ['(', 'id']
-E' ['+', 'epsilon']
-F ['(', 'id']
-T' ['*', 'epsilon']
+Grammar
+E -> T E'
+E' -> + T E'
+E' -> epsilon
+T -> F T'
+T' -> * F T'
+T' -> epsilon
+F -> ( E )
+F -> id
+
+FIRST
+E: ['(', 'id']
+E': ['+', 'epsilon']
+T: ['(', 'id']
+T': ['*', 'epsilon']
+F: ['(', 'id']
+
+FOLLOW
+E: ['$', ')']
+E': ['$', ')']
+T: ['$', ')', '+']
+T': ['$', ')', '+']
+F: ['$', ')', '*', '+']
 ```
 **Run**:
 ```bash
