@@ -1,11 +1,10 @@
 def build_grammar():
     return {
-        "E":[["E","+","T"],["T"]],
-        "T":[["T","*","F"],["F"]],
-        "F":[["(","E",")"],["id"]]
+        "E":[["E","+","E"],["E","*","E"],["(","E",")"],["id"]]
     }
 
 def is_operator_grammar(grammar):
+
     for productions in grammar.values():
         for production in productions:
 
@@ -19,40 +18,57 @@ def is_operator_grammar(grammar):
     return True
 
 def terminals_and_nonterminals(grammar):
+
     nonterminals = list(grammar.keys())
     terminals = []
 
     for productions in grammar.values():
         for production in productions:
             for symbol in production:
+
                 if symbol not in grammar and symbol not in terminals:
                     terminals.append(symbol)
 
     terminals.append("$")
+
     return nonterminals, terminals
 
 def firstvt(grammar):
+
     result = {nt:set() for nt in grammar}
 
     changed = True
+
     while changed:
+
         changed = False
 
         for nt, productions in grammar.items():
+
             for p in productions:
 
-                if p[0] not in grammar:
-                    if p[0] not in result[nt]:
-                        result[nt].add(p[0])
+                first = p[0]
+
+                if first not in grammar:
+
+                    if first not in result[nt]:
+                        result[nt].add(first)
                         changed = True
 
                 else:
-                    if len(p) > 1 and p[1] not in grammar:
-                        if p[1] not in result[nt]:
-                            result[nt].add(p[1])
-                            changed = True
 
-                    for x in result[p[0]]:
+                    if len(p) > 1:
+
+                        second = p[1]
+
+                        if second not in grammar:
+
+                            if second not in result[nt]:
+                                result[nt].add(second)
+                                changed = True
+
+                    for x in result[first]:
+
                         if x not in result[nt]:
                             result[nt].add(x)
                             changed = True
@@ -60,27 +76,41 @@ def firstvt(grammar):
     return result
 
 def lastvt(grammar):
+
     result = {nt:set() for nt in grammar}
 
     changed = True
+
     while changed:
+
         changed = False
 
         for nt, productions in grammar.items():
+
             for p in productions:
 
-                if p[-1] not in grammar:
-                    if p[-1] not in result[nt]:
-                        result[nt].add(p[-1])
+                last = p[-1]
+
+                if last not in grammar:
+
+                    if last not in result[nt]:
+                        result[nt].add(last)
                         changed = True
 
                 else:
-                    if len(p) > 1 and p[-2] not in grammar:
-                        if p[-2] not in result[nt]:
-                            result[nt].add(p[-2])
-                            changed = True
 
-                    for x in result[p[-1]]:
+                    if len(p) > 1:
+
+                        before = p[-2]
+
+                        if before not in grammar:
+
+                            if before not in result[nt]:
+                                result[nt].add(before)
+                                changed = True
+
+                    for x in result[last]:
+
                         if x not in result[nt]:
                             result[nt].add(x)
                             changed = True
@@ -88,44 +118,55 @@ def lastvt(grammar):
     return result
 
 def make_table(terminals):
-    return {r:{c:"" for c in terminals} for r in terminals}
 
-def set_relation(table,a,b,rel):
+    return {
+        row:{col:"" for col in terminals}
+        for row in terminals
+    }
 
-    if table[a][b] == "":
+def set_relation(table, a, b, rel):
+
+    current = table[a][b]
+
+    if current == "":
         table[a][b] = rel
 
-    elif table[a][b] != rel:
-        table[a][b] = "CONFLICT"
+    elif rel not in current:
+        table[a][b] += rel
 
 def build_relations(grammar, first_vt, last_vt, terminals):
 
     table = make_table(terminals)
 
     for productions in grammar.values():
+
         for p in productions:
 
             for i in range(len(p)-1):
 
-                a = p[i]
-                b = p[i+1]
+                left = p[i]
+                right = p[i+1]
 
-                if a not in grammar and b not in grammar:
-                    set_relation(table,a,b,"=")
+                if left not in grammar and right not in grammar:
+                    set_relation(table,left,right,"=")
 
-                if a not in grammar and b in grammar:
-                    for x in first_vt[b]:
-                        set_relation(table,a,x,"<")
+                if left not in grammar and right in grammar:
 
-                if a in grammar and b not in grammar:
-                    for x in last_vt[a]:
-                        set_relation(table,x,b,">")
+                    for x in first_vt[right]:
+                        set_relation(table,left,x,"<")
+
+                if left in grammar and right not in grammar:
+
+                    for x in last_vt[left]:
+                        set_relation(table,x,right,">")
 
                 if i+2 < len(p):
-                    c = p[i+2]
 
-                    if a not in grammar and b in grammar and c not in grammar:
-                        set_relation(table,a,c,"=")
+                    middle = p[i+1]
+                    last = p[i+2]
+
+                    if left not in grammar and middle in grammar and last not in grammar:
+                        set_relation(table,left,last,"=")
 
     start = next(iter(grammar))
 
@@ -139,56 +180,53 @@ def build_relations(grammar, first_vt, last_vt, terminals):
 
     return table
 
-def has_conflict(table):
-
-    for r in table:
-        for c in table[r]:
-            if table[r][c] == "CONFLICT":
-                return True
-
-    return False
-
 def print_table(table, terminals):
 
     print("\nOperator Precedence Relation Table\n")
 
     print("\t", end="")
+
     for t in terminals:
         print(t, end="\t")
+
     print()
 
-    for r in terminals:
+    for row in terminals:
 
-        print(r, end="\t")
+        print(row, end="\t")
 
-        for c in terminals:
+        for col in terminals:
 
-            x = table[r][c]
+            value = table[row][col]
 
-            if x == "":
-                x = "-"
+            if value == "":
+                value = "-"
 
-            print(x, end="\t")
+            print(value, end="\t")
 
         print()
 
-grammar = build_grammar()
+def main():
 
-if not is_operator_grammar(grammar):
-    print("Given grammar is not an Operator Grammar")
+    grammar = build_grammar()
 
-else:
+    if not is_operator_grammar(grammar):
+
+        print("Given grammar is not an Operator Grammar")
+        return
 
     first_vt = firstvt(grammar)
     last_vt = lastvt(grammar)
 
     print("FIRSTVT")
-    for k,v in first_vt.items():
-        print(k,"=",v)
+
+    for nt, values in first_vt.items():
+        print(nt, "=", sorted(values))
 
     print("\nLASTVT")
-    for k,v in last_vt.items():
-        print(k,"=",v)
+
+    for nt, values in last_vt.items():
+        print(nt, "=", sorted(values))
 
     _, terminals = terminals_and_nonterminals(grammar)
 
@@ -199,9 +237,7 @@ else:
         terminals
     )
 
-    if has_conflict(table):
-        print("\nGrammar is ambiguous")
-        print("Operator Precedence Table cannot be constructed")
+    print_table(table, terminals)
 
-    else:
-        print_table(table, terminals)
+if __name__ == "__main__":
+    main()
